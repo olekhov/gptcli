@@ -1,7 +1,6 @@
 use anyhow::Result;
 use tracing_subscriber::EnvFilter;
 use clap::{Parser, Subcommand};
-use dotenvy::dotenv;
 
 mod state;
 mod fs;
@@ -53,7 +52,10 @@ enum Cmd {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv()?;
+
+    // Ignore result
+    let _ = dotenvy::dotenv();
+
     // Инициализация журналирования в stderr
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
