@@ -1,0 +1,7 @@
+[cpp]
+globs   = ["*.c","*.cc","*.cpp","*.cxx","*.h","*.hh","*.hpp","*.inl","*.ipp"]
+exclude = ["build","cmake-build-*","_build","out","dist",".cache",".ccls-cache"]
+comment.line = ["//"]
+comment.block = [["/*","*/"]]
+manifests = ["CMakeLists.txt","*.cmake","conanfile.*","vcpkg.json","Makefile","meson.build","compile_commands.json"]
+tests.hints = ["test","tests","gtest","catch2","unittest"]
