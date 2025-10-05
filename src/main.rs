@@ -52,6 +52,7 @@ enum Cmd {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let env_map = EnvLoader::new().load()?;
     // Инициализация журналирования в stderr
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)

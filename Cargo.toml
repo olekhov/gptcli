@@ -8,6 +8,7 @@ anyhow = "1.0.100"
 async-openai = "0.29.3"
 clap = { version = "4.5.48", features = ["derive"] }
 dirs = "6.0.0"
+dotenvy = "0.15.7"
 ignore = "0.4.23"
 regex = "1.11.3"
 reqwest = "0.12.23"

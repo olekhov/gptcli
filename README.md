@@ -12,6 +12,63 @@ Plans to support: C, C++, Rust, Python, Javascript/Typescript, Lua, POSIX sh.
 
 This is my learning, side project, please do not expect any production-ready features.
 
+## Building
+
+Quite straight-forward:
+
+```sh
+$ cargo build --release
+$ cp target/release/gptcli $HOME/.local/bin
+```
+Copy compiled binary to whatever other place where you store your bins.
+
+## Prerequisites
+
+`gptcli` depends on Universal Tags invokable via `ctags` binary.
+
+This is what available on Debian sid:
+
+```
+$ ctags --version
+Universal Ctags 5.9.0, Copyright (C) 2015 Universal Ctags Team
+Universal Ctags is derived from Exuberant Ctags.
+Exuberant Ctags 5.8, Copyright (C) 1996-2009 Darren Hiebert
+  Compiled: Aug 14 2025, 14:32:33
+  URL: https://ctags.io/
+  Optional compiled features: +wildcards, +regex, +iconv, +option-directory, +xpath, +json, +interactive, +sandbox, +yaml, +packcc, +optscript
+
+```
+
+## Usage
+
+You need to obtain OpenAI API key. Export as `OPENAI_API_KEY` environment variable,
+or write to `.evn` file:
+
+```
+OPENAI_API_KEY=sk-proj-zQPR_....
+```
+
+Navigate to your project and call
+
+```sh
+$ gptcli init
+```
+
+It will try to determine project root and save settings in `.gptcli` folder.
+
+Next call
+```sh
+$ gpt scan
+$ gpt index
+```
+
+These commands scan files in directory and build tags index.
+
+To produce summary of a project call:
+```sh
+$ gpt summarize --llm
+```
+
 
 ## OpenAI attribution
 
