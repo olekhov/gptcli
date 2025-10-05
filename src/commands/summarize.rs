@@ -4,8 +4,7 @@ use rusqlite::params;
 use std::{collections::BTreeMap, fs};
 
 use async_openai::{
-    Client,
-    types::responses::InputContent,
+    types::responses::{Content, ContentType, CreateResponseArgs, Input, InputContent, InputItem, InputMessageArgs, InputMessageType, InputText, Response, Role}, Client
 //    types::{ ResponseInput, InputContent, ResponseCreateArgs }
 };
 
@@ -169,8 +168,44 @@ fn collect_todos(conn: &rusqlite::Connection, ns: &str, limit: usize) -> Result<
 }
 
 
+use async_openai::types::{responses::OutputContent};
 
-pub async fn run_llm(model: String, max_output: u32, system_file: Option<String>, facts_path: String) -> Result<()> {
+fn extract_output_text(resp: &Response) -> String {
+    if let Some(t) = resp.output_text.clone() {
+        return t;
+    }
+    let mut parts = Vec::new();
+    for oc in &resp.output {
+        if let OutputContent::Message(msg) = oc {
+            // msg.content: Vec<...>; ищем текстовые куски
+            for item in &msg.content {
+                // В новых типах это обычно вариант с названием наподобие `OutputText { text }`.
+                // У некоторых версий есть удобный метод вида `item.output_text()`.
+                match item {
+
+                    Content::OutputText(output_text) => {
+                        parts.push(output_text.text.clone());
+                    },
+                    Content::Refusal(refusal) => todo!(),
+                    /*
+                    // если есть удобный геттер:
+                    _ if item.output_text().is_some() => {
+                        parts.push(item.output_text().unwrap().to_string());
+                    }
+                    // либо матч на явный вариант (название может отличаться в минорных версиях):
+                    async_openai::types::MessageContent::OutputText(t) => {
+                        parts.push(t.text.clone());
+                    }
+                    _ => {}
+                    */
+                }
+            }
+        }
+    }
+    parts.join("\n")
+}
+
+pub async fn run_llm(model: String, max_output: usize, system_file: Option<String>, facts_path: String) -> Result<()> {
     // 1) читаем данные
     let facts = fs::read_to_string(&facts_path)
         .with_context(|| format!("read {}", facts_path))?;
@@ -181,9 +216,29 @@ pub async fn run_llm(model: String, max_output: u32, system_file: Option<String>
         "Ты — технический обзорщик C/C++ проектов. Пиши кратко и структурировано. Не выдумывай: опирайся только на предоставленные секции [BUILD]/[ENTRYPOINTS]/[STRUCTURE]/[TODOs]. Вывод: 1) краткое описание; 2) сборка (список); 3) модули и ответственность; 4) внешние зависимости и зачем; 5) тесты/инфраструктура; 6) риски/технический долг (списком).".to_string()
     };
 
+
+    let system_msg = InputItem::Message(
+        InputMessageArgs::default()
+            .kind(InputMessageType::Message)                // можно опустить: Default
+            .role(Role::System)
+            .content(InputContent::TextInput(system.clone())) // <-- оборачиваем текст
+            .build()?
+    );
+
+    let user_msg = InputItem::Message(
+        InputMessageArgs::default()
+            .role(Role::User)
+            .content(InputContent::TextInput(
+                format!("Ниже факты о проекте (BUILD/ENTRYPOINTS/STRUCTURE/TODOs). Подготовь обзор.\n{}", &facts)
+            ))
+            .build()?
+    );
+
+
     // 2) соберём объект запроса (Responses API)
-    let input = vec![
-        ResponseInput {
+    let input :Vec<InputItem> = vec![ system_msg, user_msg ];
+        /*
+    {
             role: "system".into(),
             content: vec![InputContent::input_text(system.clone())],
         },
@@ -194,12 +249,12 @@ pub async fn run_llm(model: String, max_output: u32, system_file: Option<String>
                 InputContent::input_text(facts.clone()),
             ],
         },
-    ];
+        */
 
-    let args = ResponseCreateArgs::default()
+    let args = CreateResponseArgs::default()
         .model(model.clone())
-        .max_output_tokens(max_output)
-        .input(input)
+        .max_output_tokens(max_output as u32)
+        .input(Input::Items(input))
         .build()?;
 
     // 3) сохраним сырой запрос в /tmp
@@ -216,20 +271,11 @@ pub async fn run_llm(model: String, max_output: u32, system_file: Option<String>
     fs::write(&resp_path, serde_json::to_vec_pretty(&resp)?)?;
 
     // 6) вытащим текст и usage
-    let text = resp.output_text
-        .clone()
-        .unwrap_or_else(|| {
-            // fallback: склеить куски
-            resp.output.unwrap_or_default().into_iter()
-                .flat_map(|c| c.content.unwrap_or_default())
-                .filter_map(|p| p.output_text())
-                .collect::<Vec<_>>()
-                .join("\n")
-        });
+    let text = extract_output_text(&resp);
 
     // usage может отсутствовать — учитываем это
     let (pt, ct, tt) = if let Some(u) = resp.usage {
-        (u.prompt_tokens.unwrap_or(0), u.completion_tokens.unwrap_or(0), u.total_tokens.unwrap_or(0))
+        (u.input_tokens, u.output_tokens, u.total_tokens)
     } else { (0,0,0) };
 
     println!("{text}\n");

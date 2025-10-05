@@ -40,7 +40,7 @@ enum Cmd {
     Summarize {
     #[arg(long)] llm: bool,
     #[arg(long, default_value="gpt-4.1-mini")] model: String,
-    #[arg(long, default_value_t=1200)] max_output: u32,
+    #[arg(long, default_value_t=1200)] max_output: usize,
     #[arg(long)] system_file: Option<String>,
     #[arg(long, default_value="summarize.txt")] facts: String,
     },
@@ -50,7 +50,8 @@ enum Cmd {
 
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Инициализация журналирования в stderr
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
@@ -65,7 +66,13 @@ fn main() -> Result<()> {
         Cmd::Index {} => index::run(),
         Cmd::ReindexChanged {} => reindex_changed::run(),
         Cmd::Stats {} => stats::run(),
-        Cmd::Summarize { build_limit } => summarize::run(build_limit),
-        Cmd::Budget {} => budget::run(),
+        Cmd::Summarize { llm, model, max_output, system_file, facts } => {
+            if llm {
+                summarize::run_llm(model, max_output, system_file, facts).await
+            } else {
+                summarize::run(max_output)
+            }
+        },
+        Cmd::Budget {} => budget::run().await,
     }
 }
