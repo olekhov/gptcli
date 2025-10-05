@@ -58,17 +58,39 @@ It will try to determine project root and save settings in `.gptcli` folder.
 
 Next call
 ```sh
-$ gpt scan
-$ gpt index
+$ gptcli scan
+$ gptcli index
 ```
 
 These commands scan files in directory and build tags index.
 
-To produce summary of a project call:
+Next, run summarize to produce facts:
+
+```sh
+$ gptcli summarize > summarize.txt
+```
+
+To generate human-readable summary of a project call:
+
 ```sh
 $ gpt summarize --llm
 ```
 
+Check tunable parameters:
+```sh
+$ gpt summarize --help
+Сгенерировать секционный обзор проекта для LLM
+
+Usage: gptcli summarize [OPTIONS]
+
+Options:
+      --llm
+      --model <MODEL>              [default: gpt-4.1-mini]
+      --max-output <MAX_OUTPUT>    [default: 1200]
+      --system-file <SYSTEM_FILE>
+      --facts <FACTS>              [default: summarize.txt]
+  -h, --help                       Print help
+```
 
 ## OpenAI attribution
 
