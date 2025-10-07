@@ -45,6 +45,15 @@ enum Cmd {
     #[arg(long, default_value="summarize.txt")] facts: String,
     },
 
+    /// Объяснить назначение и работу функции/класса
+    Explain {
+        #[arg(long)] symbol: Option<String>,    // напр. "net::TlsClient::handshake"
+        #[arg(long)] file: Option<String>,      // относительный путь
+        #[arg(long)] lines: Option<String>,     // "A:B"
+        #[arg(long, default_value="gpt-4.1-mini")] model: String,
+        #[arg(long, default_value_t=900)] max_output: u32,
+        #[arg(long, default_value_t=15)] window: u32,   // контекст ±N строк
+    },
     /// Показать бюджет
     Budget {},
 
@@ -77,6 +86,8 @@ async fn main() -> Result<()> {
                 summarize::run(max_output)
             }
         },
+        Cmd::Explain { symbol, file, lines, model, max_output, window } =>
+            commands::explain::run(symbol, file, lines, model, max_output, window).await,
         Cmd::Budget {} => budget::run().await,
     }
 }

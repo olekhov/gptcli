@@ -170,7 +170,7 @@ fn collect_todos(conn: &rusqlite::Connection, ns: &str, limit: usize) -> Result<
 
 use async_openai::types::{responses::OutputContent};
 
-fn extract_output_text(resp: &Response) -> String {
+pub fn extract_output_text(resp: &Response) -> String {
     if let Some(t) = resp.output_text.clone() {
         return t;
     }
@@ -237,19 +237,6 @@ pub async fn run_llm(model: String, max_output: usize, system_file: Option<Strin
 
     // 2) соберём объект запроса (Responses API)
     let input :Vec<InputItem> = vec![ system_msg, user_msg ];
-        /*
-    {
-            role: "system".into(),
-            content: vec![InputContent::input_text(system.clone())],
-        },
-        ResponseInput {
-            role: "user".into(),
-            content: vec![
-                InputContent::input_text("Ниже факты о проекте (BUILD/ENTRYPOINTS/STRUCTURE/TODOs). Подготовь обзор."),
-                InputContent::input_text(facts.clone()),
-            ],
-        },
-        */
 
     let args = CreateResponseArgs::default()
         .model(model.clone())

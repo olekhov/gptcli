@@ -6,7 +6,9 @@ pub mod reindex_changed;
 pub mod stats;
 pub mod summarize;
 pub mod budget;
+pub mod explain;
 
+pub use explain::*;
 pub use init::*;
 pub use scan::*;
 pub use chunk::*;

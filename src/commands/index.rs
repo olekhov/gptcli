@@ -89,7 +89,10 @@ pub fn run() -> Result<()> {
         let mut upd_file = tx.prepare(
             "UPDATE files SET indexed_sha=?1, indexed_at=?2 WHERE id=?3")?;
 
-        for pf in pending {
+        let total = pending.len();
+
+        for (idx, pf) in pending.into_iter().enumerate() {
+            println!("Indexing {}/{} : {}", idx+1, total, &pf.rel_path);
             // читаем текст файла (для чанков)
             let abs = root.join(&pf.rel_path);
             let file_text = match read_text_sanitized(&abs) {
@@ -183,7 +186,7 @@ fn run_ctags(project_root: &Path, paths: &[String]) -> Result<Vec<CtagsTag>> {
             "--output-format=json",
             "--languages=C,C++",
             "--fields=+KlnSmt",
-            "--extras=-F",
+            "--extras=+F",
             "--sort=no",
             "-L",
             "-",
