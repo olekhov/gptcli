@@ -5,19 +5,18 @@ use std::{collections::BTreeMap, fs};
 
 use async_openai::{
     types::responses::{Content, ContentType, CreateResponseArgs, Input, InputContent, InputItem, InputMessageArgs, InputMessageType, InputText, Response, Role}, Client
-//    types::{ ResponseInput, InputContent, ResponseCreateArgs }
 };
 
 use time::OffsetDateTime;
 
-use crate::{db::open_db, fs as ufs, state::ProjectState};
+use crate::context::AppCtx;
 
 // Главная точка
-pub fn run(build_limit: usize) -> Result<()> {
-    let root = ufs::detect_project_root()?;
-    let st = ProjectState::load(&root)?;
+pub fn run(ctx: &AppCtx, build_limit: usize) -> Result<()> {
+    let root = &ctx.root;
+    let st = &ctx.state;
     let ns = &st.namespace;
-    let conn = open_db(&root)?;
+    let conn = ctx.open_db()?;
 
     let build = collect_build_facts(&conn, &root, ns, build_limit)?;
     let entry = collect_entry_points(&conn, ns)?;
@@ -205,7 +204,7 @@ pub fn extract_output_text(resp: &Response) -> String {
     parts.join("\n")
 }
 
-pub async fn run_llm(model: String, max_output: usize, system_file: Option<String>, facts_path: String) -> Result<()> {
+pub async fn run_llm(ctx: &AppCtx, model: String, max_output: usize, system_file: Option<String>, facts_path: String) -> Result<()> {
     // 1) читаем данные
     let facts = fs::read_to_string(&facts_path)
         .with_context(|| format!("read {}", facts_path))?;

@@ -11,13 +11,14 @@ dirs = "6.0.0"
 dotenvy = "0.15.7"
 ignore = "0.4.23"
 regex = "1.11.3"
-reqwest = "0.12.23"
+reqwest = { version = "0.12.23", features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.37.0", features = ["bundled"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 sha2 = "0.10.9"
 time = { version = "0.3.44", features = ["formatting", "macros"] }
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+toml = "0.9.7"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 walkdir = "2.5.0"

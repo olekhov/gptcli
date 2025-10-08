@@ -10,7 +10,7 @@ use std::{
 };
 use time::{OffsetDateTime};
 
-use crate::{db::open_db, fs as ufs, state::ProjectState};
+use crate::context::AppCtx;
 
 #[derive(Debug, Deserialize, Clone)]
 struct CtagsTag {
@@ -42,10 +42,10 @@ struct PendingFile {
     mtime: i64,
 }
 
-pub fn run() -> Result<()> {
-    let root = ufs::detect_project_root()?;
-    let st = ProjectState::load(&root)?;
-    let mut conn = open_db(&root)?;
+pub fn run(ctx: &AppCtx) -> Result<()> {
+    let root = &ctx.root;
+    let st = &ctx.state;
+    let mut conn = ctx.open_db()?;
 
     let pending = pending_files(&conn, &st.namespace)?;
     if pending.is_empty() {

@@ -7,6 +7,10 @@ pub mod stats;
 pub mod summarize;
 pub mod budget;
 pub mod explain;
+pub mod config_cmd;
+pub mod set_cmd;
+pub mod whoami;
+pub mod oneshot;
 
 pub use explain::*;
 pub use init::*;

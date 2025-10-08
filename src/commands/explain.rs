@@ -7,9 +7,11 @@ use rusqlite::{fallible_streaming_iterator::FallibleStreamingIterator, params, C
 use std::{fs, path::{Path, PathBuf}};
 use time::OffsetDateTime;
 
-use crate::{commands::extract_output_text, db::open_db, fs as ufs, state::ProjectState};
+use crate::commands::extract_output_text;
+use crate::AppCtx;
 
 pub async fn run(
+    ctx: &AppCtx,
     symbol: Option<String>,
     file: Option<String>,
     lines: Option<String>,
@@ -17,10 +19,10 @@ pub async fn run(
     max_output: u32,
     window: u32,
 ) -> Result<()> {
-    let root = ufs::detect_project_root()?;
-    let st   = ProjectState::load(&root)?;
+    let root = &ctx.root;
+    let st   = &ctx.state;
     let ns   = st.namespace.clone();
-    let conn = open_db(&root)?;
+    let conn = ctx.open_db()?;
 
     // 1) Определяем цель
     let tgt = resolve_target(&conn, &root, &ns, symbol.as_deref(), file.as_deref(), lines.as_deref())?
@@ -76,6 +78,7 @@ signature: {sig}
     let (text, usage, req_path, resp_path) = call_openai(model, max_output, &facts, system).await?;
 
     println!("{text}\n");
+    println!("Tokens used: {usage:?}\n");
     eprintln!("— raw request:  {req_path}");
     eprintln!("— raw response: {resp_path}");
     Ok(())
@@ -126,7 +129,7 @@ fn resolve_target(
             let scope: Option<String> = r.get(6)?;
             let sig: Option<String>   = r.get(7)?;
             if end <= 0 {
-                end = approx_end_line(conn, ns, &path, line)?;
+                end = approx_end_line(conn, root, ns, &path, line)?;
             }
             return Ok(Some(Target{
                 file_id, path, name: name.clone(),
@@ -159,7 +162,7 @@ fn resolve_target(
 
             if end <= 0 {
                 // теперь это выполняется в функции с anyhow::Result — ? легален
-                end = b.max(approx_end_line(conn, ns, p, line)?);
+                end = b.max(approx_end_line(conn, root, ns, p, line)?);
             }
 
             return Ok(Some(Target {
@@ -201,7 +204,7 @@ fn parse_range(s: &str) -> Result<(i64,i64)> {
     Ok((a.min(b), a.max(b)))
 }
 
-fn approx_end_line(conn:&Connection, ns:&str, path:&str, begin:i64) -> Result<i64> {
+fn approx_end_line(conn:&Connection, root: &Path, ns:&str, path:&str, begin:i64) -> Result<i64> {
     // следующий тег − 1, иначе "конец файла"
     let mut q = conn.prepare(
         "SELECT COALESCE(MIN(line),0) FROM tags t
@@ -211,7 +214,7 @@ fn approx_end_line(conn:&Connection, ns:&str, path:&str, begin:i64) -> Result<i6
     let next: i64 = q.query_row(params![ns,path,begin], |r| r.get(0))?;
     if next>0 { Ok(next-1) } else {
         // конец по числу строк в файле
-        let full = read_text_sanitized(&ufs::detect_project_root()?.join(path))?;
+        let full = read_text_sanitized(&root.join(path))?;
         Ok(full.lines().count() as i64)
     }
 }
@@ -238,7 +241,7 @@ fn section_class_type(conn:&Connection, root:&Path, ns:&str, tgt:&Target, win:i6
     )?;
     let row = q.query_row(params![ns,&cls], |r| Ok((r.get::<_,String>(0)?, r.get::<_,i64>(1)?, r.get::<_,i64>(2)?)));
     if let Ok((path, line, mut end)) = row {
-        if end<=0 { end = approx_end_line(conn, ns, &path, line)?; }
+        if end<=0 { end = approx_end_line(conn, root, ns, &path, line)?; }
         let txt = read_text_sanitized(&root.join(path))?;
         return Ok(slice_lines(&txt, (line-win).max(1), end+win));
     }

@@ -9,12 +9,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{db::open_db, fs as ufs, state::ProjectState};
+use crate::context::AppCtx;
 
-pub fn run() -> Result<()> {
-    let root = ufs::detect_project_root()?;
-    let st = ProjectState::load(&root)?;
-    let mut conn = open_db(&root)?;
+pub fn run(ctx: &AppCtx) -> Result<()> {
+    let root = &ctx.root;
+    let st = &ctx.state;
+    let mut conn = ctx.open_db()?;
 
     // --- файловые типы (пока C/C++ + манифесты; расширим языковыми пакетами позже)
     let mut tb = TypesBuilder::new();

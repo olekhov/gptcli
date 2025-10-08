@@ -18,9 +18,13 @@ impl ProjectState {
 
     pub fn load(root: &PathBuf) -> Result<Self> {
         let p = Self::path(root);
-        let s = fs::read_to_string(&p)
-            .with_context(|| format!("state file not found: {}", p.display()))?;
-        Ok(serde_json::from_str(&s)?)
+        match fs::read_to_string(&p) {
+            Ok(s) => Ok(serde_json::from_str(&s)?),
+            Err(_) => {
+                tracing::warn!("State file not found, using temporary");
+                ProjectState::new(p, "temporary".to_string())
+            }
+        }
     }
 
     pub fn save(&self) -> Result<()> {
